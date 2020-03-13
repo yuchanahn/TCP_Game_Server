@@ -1,5 +1,4 @@
-﻿  pch.cpp
-  TCP_Game_Server.cpp
+﻿  TCP_Game_Server.cpp
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\um\winbase.h(9305,5): warning C5105: 'defined'를 생성하는 매크로 확장에 정의되지 않은 동작이 있습니다.
 C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\include\YCPacket.h(82,2): warning C4091: 'static ': 변수를 선언하지 않으면 'PacketEvent' 왼쪽은 무시됩니다.
   TCP_Game_Server.vcxproj -> C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\x64\Debug\TCP_Game_Server.exe

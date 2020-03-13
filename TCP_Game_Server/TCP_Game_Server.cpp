@@ -10,10 +10,22 @@
 
 #include <regex>
 
+
+// TODO :
+/*
+		LIB가 Debug 모드로 되어있다
+		나중에 릴리즈 모드로 다시 빌드 해야함.
+*/
+
+
 #pragma pack(push, 1)
 struct test_t
 {
 	wchar_t c[100];
+};
+struct ping_t
+{
+	long long ping;
 };
 #pragma pack(pop)
 
@@ -27,6 +39,7 @@ int main()
 {
 #pragma region PACKET_SET
 	ioev::Map<test_t>().To<0>();
+	ioev::Map<ping_t>().To<1>();
 #pragma endregion
 	// this hash_map, Have to used in Server_Sync!!!
 	std::unordered_map<int, sesstion_t> clients;
@@ -76,6 +89,10 @@ int main()
 				server.Send(i.first, &t);
 			}
 			});
+	});
+
+	ioev::Signal<ping_t>([&server](ping_t* p, int id) {
+		server.Send(id, p);
 	});
 	server.Srv_Start();
 	return 0;
