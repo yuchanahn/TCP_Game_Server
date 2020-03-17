@@ -97,6 +97,7 @@
       <AdditionalOptions>/std:c++latest /permissive- /experimental:preprocessor /DFMT_HEADER_ONLY=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,6 +116,7 @@
       <AdditionalOptions>/std:c++latest /permissive- /experimental:preprocessor /DFMT_HEADER_ONLY=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,6 +137,7 @@
       <AdditionalOptions>/std:c++latest /permissive- /experimental:preprocessor /DFMT_HEADER_ONLY=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,6 +160,7 @@
       <AdditionalOptions>/std:c++latest /permissive- /experimental:preprocessor /DFMT_HEADER_ONLY=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

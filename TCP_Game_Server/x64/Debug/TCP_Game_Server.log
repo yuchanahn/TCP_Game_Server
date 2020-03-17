@@ -1,4 +1,68 @@
 ﻿  TCP_Game_Server.cpp
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\um\winbase.h(9305,5): warning C5105: 'defined'를 생성하는 매크로 확장에 정의되지 않은 동작이 있습니다.
 C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\include\YCPacket.h(82,2): warning C4091: 'static ': 변수를 선언하지 않으면 'PacketEvent' 왼쪽은 무시됩니다.
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\xstring(2388,23): warning C4244: '인수': '_Ty'에서 'const _Elem'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+          with
+          [
+              _Ty=const wchar_t
+          ]
+          and
+          [
+              _Elem=char
+          ]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\xstring(2399): message : 컴파일되는 함수 템플릿 인스턴스화 'void std::basic_string<char,std::char_traits<char>,std::allocator<char>>::_Construct<_Ty*>(_Iter,const _Iter,std::input_iterator_tag)'에 대한 참조를 확인하세요.
+          with
+          [
+              _Ty=const wchar_t,
+              _Iter=const wchar_t *
+          ]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\xstring(2399): message : 컴파일되는 함수 템플릿 인스턴스화 'void std::basic_string<char,std::char_traits<char>,std::allocator<char>>::_Construct<_Ty*>(_Iter,const _Iter,std::input_iterator_tag)'에 대한 참조를 확인하세요.
+          with
+          [
+              _Ty=const wchar_t,
+              _Iter=const wchar_t *
+          ]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\xstring(2379): message : 컴파일되는 함수 템플릿 인스턴스화 'void std::basic_string<char,std::char_traits<char>,std::allocator<char>>::_Construct<_Ty*>(const _Iter,const _Iter,std::forward_iterator_tag)'에 대한 참조를 확인하세요.
+          with
+          [
+              _Ty=const wchar_t,
+              _Iter=const wchar_t *
+          ]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\xstring(2379): message : 컴파일되는 함수 템플릿 인스턴스화 'void std::basic_string<char,std::char_traits<char>,std::allocator<char>>::_Construct<_Ty*>(const _Iter,const _Iter,std::forward_iterator_tag)'에 대한 참조를 확인하세요.
+          with
+          [
+              _Ty=const wchar_t,
+              _Iter=const wchar_t *
+          ]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\xstring(2921): message : 컴파일되는 함수 템플릿 인스턴스화 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>::basic_string<const wchar_t*,void>(_Iter,_Iter,const _Alloc &)'에 대한 참조를 확인하세요.
+          with
+          [
+              _Iter=const wchar_t *,
+              _Alloc=std::allocator<char>
+          ]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\xstring(2921): message : 컴파일되는 함수 템플릿 인스턴스화 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>::basic_string<const wchar_t*,void>(_Iter,_Iter,const _Alloc &)'에 대한 참조를 확인하세요.
+          with
+          [
+              _Iter=const wchar_t *,
+              _Alloc=std::allocator<char>
+          ]
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(129): message : 컴파일되는 함수 템플릿 인스턴스화 'std::basic_string<char,std::char_traits<char>,std::allocator<char>> &std::basic_string<char,std::char_traits<char>,std::allocator<char>>::assign<std::_String_const_iterator<std::_String_val<std::_Simple_types<_Elem>>>,void>(const _Iter,const _Iter)'에 대한 참조를 확인하세요.
+          with
+          [
+              _Elem=wchar_t,
+              _Iter=std::_String_const_iterator<std::_String_val<std::_Simple_types<wchar_t>>>
+          ]
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(129): message : 컴파일되는 함수 템플릿 인스턴스화 'std::basic_string<char,std::char_traits<char>,std::allocator<char>> &std::basic_string<char,std::char_traits<char>,std::allocator<char>>::assign<std::_String_const_iterator<std::_String_val<std::_Simple_types<_Elem>>>,void>(const _Iter,const _Iter)'에 대한 참조를 확인하세요.
+          with
+          [
+              _Elem=wchar_t,
+              _Iter=std::_String_const_iterator<std::_String_val<std::_Simple_types<wchar_t>>>
+          ]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\chrono(632): message : 컴파일되는 클래스 템플릿 인스턴스화 'std::chrono::duration<double,std::ratio<1,1>>'에 대한 참조를 확인하세요.
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\chrono(178): message : 컴파일되는 클래스 템플릿 인스턴스화 'std::chrono::duration<__int64,std::nano>'에 대한 참조를 확인하세요.
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.24.28314\include\chrono(610): message : 컴파일되는 클래스 템플릿 인스턴스화 'std::chrono::time_point<std::chrono::steady_clock,std::chrono::nanoseconds>'에 대한 참조를 확인하세요.
+  YCFramework.lib(YCServer.obj) : /GL로 컴파일한 MSIL .netmodule 또는 모듈이 있습니다. /LTCG를 지정하여 링크를 다시 시작하십시오. /LTCG를 링크 명령줄에 추가하면 링커 성능이 향상됩니다.
+LINK : warning LNK4075: '/INCREMENTAL'이(가) '/LTCG' 사양으로 인해 무시됩니다.
+  코드를 생성하고 있습니다.
+  코드를 생성했습니다.
   TCP_Game_Server.vcxproj -> C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\x64\Debug\TCP_Game_Server.exe
