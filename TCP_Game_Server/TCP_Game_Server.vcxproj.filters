@@ -26,5 +26,14 @@
     <ClInclude Include="pch.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="YCRandom.h">
+      <Filter>소스 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="YCCE.h">
+      <Filter>소스 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="YCFunc.h">
+      <Filter>소스 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
