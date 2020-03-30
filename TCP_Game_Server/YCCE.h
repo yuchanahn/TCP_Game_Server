@@ -12,7 +12,7 @@ namespace yc
 		std::list<std::function<void()>> fs;
 		T val;
 
-		void add(std::function<void()> f)
+		void on_change(std::function<void()> f)
 		{
 			fs.push_back(f);
 		}

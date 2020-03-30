@@ -15,20 +15,20 @@ namespace yc {
     static float rand(float min, float max)
     {
         random_device rn;
-        mt19937_64 rnd(rn());
-        uniform_real_distribution<float> range(min, max);
+        mt19937 rnd(rn());
+        uniform_real_distribution<> range(min, max);
         return range(rnd);
     }
 
     template <typename T>
     static T random_dir2d()
     {
-        return T(cos(rand(1.f, 360.f)), sin(rand(1.f, 360.f)));
+        return T(cos(rand(1.f, 360.f)), sin(rand(1.f, 360.f))).normalize();
     }
     template <typename T>
     static T random_pos(float min, float max)
     {
-        return T(yc::rand(1.f, 10.f), yc::rand(1.f, 10.f)));
+        return T(yc::rand(1.f, 10.f), yc::rand(1.f, 10.f));
     }
 
     static float random_unit_curcle()

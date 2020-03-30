@@ -1,10 +1,12 @@
 ﻿  TCP_Game_Server.cpp
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\um\winbase.h(9305,5): warning C5105: 'defined'를 생성하는 매크로 확장에 정의되지 않은 동작이 있습니다.
 C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\include\YCPacket.h(82,2): warning C4091: 'static ': 변수를 선언하지 않으면 'PacketEvent' 왼쪽은 무시됩니다.
-C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(265,1): warning C4305: '초기화 중': 'double'에서 'float'(으)로 잘립니다.
-C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(376,9): warning C4838: 'float'에서 'int'(으)로의 변환에는 축소 변환이 필요합니다.
-C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(376,9): warning C4244: '초기화 중': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(779,48): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\YCRandom.h(20,21): warning C4244: 'return': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(118,17): warning C4244: '인수': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(312,1): warning C4305: '초기화 중': 'double'에서 'float'(으)로 잘립니다.
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(494,4): warning C4838: 'float'에서 'int'(으)로의 변환에는 축소 변환이 필요합니다.
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(494,4): warning C4244: '초기화 중': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(945,48): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
 C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.25.28610\include\xstring(2389,23): warning C4244: '인수': 'const wchar_t'에서 'const _Elem'(으)로 변환하면서 데이터가 손실될 수 있습니다.
           with
           [
@@ -42,21 +44,21 @@ C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\1
               _Iter=const wchar_t *,
               _Alloc=std::allocator<char>
           ]
-C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(523): message : 컴파일되는 함수 템플릿 인스턴스화 'std::basic_string<char,std::char_traits<char>,std::allocator<char>> &std::basic_string<char,std::char_traits<char>,std::allocator<char>>::assign<std::_String_const_iterator<std::_String_val<std::_Simple_types<_Elem>>>,0>(const _Iter,const _Iter)'에 대한 참조를 확인하세요.
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(674): message : 컴파일되는 함수 템플릿 인스턴스화 'std::basic_string<char,std::char_traits<char>,std::allocator<char>> &std::basic_string<char,std::char_traits<char>,std::allocator<char>>::assign<std::_String_const_iterator<std::_String_val<std::_Simple_types<_Elem>>>,0>(const _Iter,const _Iter)'에 대한 참조를 확인하세요.
           with
           [
               _Elem=wchar_t,
               _Iter=std::_String_const_iterator<std::_String_val<std::_Simple_types<wchar_t>>>
           ]
-C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(479): message : 컴파일되는 함수 템플릿 인스턴스화 'std::basic_string<char,std::char_traits<char>,std::allocator<char>> &std::basic_string<char,std::char_traits<char>,std::allocator<char>>::assign<std::_String_const_iterator<std::_String_val<std::_Simple_types<_Elem>>>,0>(const _Iter,const _Iter)'에 대한 참조를 확인하세요.
+C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\TCP_Game_Server\TCP_Game_Server.cpp(630): message : 컴파일되는 함수 템플릿 인스턴스화 'std::basic_string<char,std::char_traits<char>,std::allocator<char>> &std::basic_string<char,std::char_traits<char>,std::allocator<char>>::assign<std::_String_const_iterator<std::_String_val<std::_Simple_types<_Elem>>>,0>(const _Iter,const _Iter)'에 대한 참조를 확인하세요.
           with
           [
               _Elem=wchar_t,
               _Iter=std::_String_const_iterator<std::_String_val<std::_Simple_types<wchar_t>>>
           ]
   코드를 생성하고 있습니다.
-  24 of 6416 functions ( 0.4%) were compiled, the rest were copied from previous compilation.
+  5 of 7103 functions (<0.1%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    9 functions had inline decision re-evaluated but remain unchanged
+    10 functions had inline decision re-evaluated but remain unchanged
   코드를 생성했습니다.
   TCP_Game_Server.vcxproj -> C:\Users\안유찬\Desktop\MyGit\TCP_Game_Server\x64\Release\TCP_Game_Server.exe

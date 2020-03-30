@@ -92,6 +92,15 @@ struct vec2_t
 	vec2_t operator-(vec2_t s) {
 		return vec2_t(x - s.x, y - s.y);
 	}
+	vec2_t operator+(vec2_t& v) {
+		return vec2_t(x + v.x, y + v.y);
+	}
+	vec2_t operator+(vec2_t v) {
+		return vec2_t(x + v.x, y + v.y);
+	}
+	vec2_t operator+(float s) {
+		return vec2_t(x + s, y + s);
+	}
 	float dist(vec2_t v) const {
 		vec2_t d(v.x - x, v.y - y);
 		return d.length();
@@ -99,13 +108,58 @@ struct vec2_t
 	float length() const {
 		return std::sqrt(x * x + y * y);
 	}
+	vec2_t& operator*=(float s) {
+		x *= s;
+		y *= s;
+		return *this;
+	}
+	vec2_t& normalize() {
+		if (length() == 0) return *this;
+		*this *= (1.0 / length());
+		return *this;
+	}
+	vec2_t vel_for(vec2_t o)
+	{
+		return (o - *this).normalize();
+	}
+	vec2_t vel_for(vec2_t& o)
+	{
+		return (o - *this).normalize();
+	}
+	static vec2_t get_close(vec2_t start_p, std::vector<vec2_t> ps)
+	{
+		//using namespace ::ranges;
+		assert(!ps.empty());
+		
+		const auto r_ = ps	| ::ranges::views::transform([&](const auto& i) { return std::make_pair(start_p.dist(i), std::make_pair(i.x, i.y)); })
+							| ::ranges::to_vector
+							| ::ranges::actions::sort;
+							
+		for (auto r: r_ | ::ranges::views::take(1))
+		{
+			return vec2_t(r.second.first, r.second.second);
+		}
+		
+	}
 };
+
+template <>
+struct fmt::formatter<vec2_t> {
+	constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+	template <typename FormatContext>
+	auto format(const vec2_t& d, FormatContext& ctx) {
+		return format_to(ctx.out(), "x: {}, y: {}", d.x, d.y);
+	}
+};
+
 struct player_t
 {
 	int user_id;
 	int speed;
 	vec2_t pos;
 	vec2_t vel;
+	vec2_t dir;
 };
 struct champ_ani_t
 {
@@ -135,14 +189,8 @@ struct stat_t
 	float md; // 마법 방어력.
 
 	float as; // 공속.
-
+	float follow_range;
 	float speed;
-
-	//일반 공격 중 인가?
-	bool bAtk;
-
-	//스킬 사용 중 인가?
-	bool bSkill;
 
 	//현재 애니메이션 시간.
 	float ani_time_nomal;
@@ -160,11 +208,10 @@ struct stat_t
 #define _SP_
 #define _MD_
 #define _SPEED_
-#define _bAtk_
-#define _bSkill_
 #define _ANI_T_
 #define _ANINM_T_
 #define _AS_
+#define _FOLLOW_RANGE_
 #pragma endregion
 
 class YCObject
@@ -229,40 +276,38 @@ struct champ_t
 		{
 			camps[eChampion::Warrior] = champ_t {
 				eAttackType::NTRange,
-				attack_data_t { 0.1f, 0.2f, 1.f, 2.f },
+				attack_data_t { 0.1f, 0.2f, 0.1f, 1.f },
 				stat_t
 				{
-					_HP_		100,
-					_MP_		0,
-					_MAX_HP_	100,
-					_MAX_MP_	0,
-					_OP_		10,
-					_PD_		10,
-					_SP_		10,
-					_MD_		10,
-					_AS_		1,
-					_SPEED_		2,
-					_bAtk_		false,
-					_bSkill_	false,
-					_ANINM_T_	0.f,
-					_ANI_T_		0.9f
+					_HP_			100,
+					_MP_			0,
+					_MAX_HP_		100,
+					_MAX_MP_		0,
+					_OP_			10,
+					_PD_			10,
+					_SP_			10,
+					_MD_			10,
+					_AS_			2,
+					_FOLLOW_RANGE_	5,
+					_SPEED_			2,
+					_ANINM_T_		0.f,
+					_ANI_T_			0.9f
 				},
 				stat_t
 				{
-					_HP_		0,
-					_MP_		0,
-					_MAX_HP_	1,
-					_MAX_MP_	0,
-					_OP_		0.1,
-					_PD_		0.1,
-					_SP_		0,
-					_MD_		0.1,
-					_AS_		-0.05f,
-					_SPEED_		0,
-					_bAtk_		false,
-					_bSkill_	false,
-					_ANINM_T_	0.f,
-					_ANI_T_		0.f
+					_HP_			0,
+					_MP_			0,
+					_MAX_HP_		1,
+					_MAX_MP_		0,
+					_OP_			0.1,
+					_PD_			0.1,
+					_SP_			0,
+					_MD_			0.1,
+					_AS_			-0.05f,
+					_FOLLOW_RANGE_	0,
+					_SPEED_			0,
+					_ANINM_T_		0.f,
+					_ANI_T_			0.f
 				}
 			};
 		}
@@ -274,19 +319,79 @@ struct champ_t
 		return new champ_t(get_champ_defult(champ_code));
 	}
 };
-
-
-class attack_st
+struct time_val_t
 {
+	float t = 0;
+	float rate;
+	bool once_f;
 
+	void update(const float _t) { t += _t; }
+	void reset() { t = 0; }
+
+	time_val_t(float r_) :
+		t(0), rate(r_), once_f(true)
+	{}
+
+	template <typename F>
+	void timer_end(F f, float ut)
+	{
+		update(ut);
+		if (t >= rate)
+		{
+			reset();
+			f();
+		}
+	}
+	template <typename F>
+	void timer_start(F f)
+	{
+		if (once_f)
+		{
+			f();
+			once_f = false;
+		}
+	}
 };
-class random_move_st
-{
 
+struct attack_st
+{
+	float ani_nomal_time;
+	vec2_t vel;
+	vec2_t dir2d;
+	template <typename F> 
+	void on_attack_end(F OnAttackEnd)
+	{
+		if (ani_nomal_time >= 1.f)
+		{
+			OnAttackEnd();
+		}
+	}
+	template <typename F>
+	void on_hitable_time(F on_hit_event, const float& hit_col_stratT, const float& hit_col_endT)
+	{
+		if (ani_nomal_time >= hit_col_stratT && ani_nomal_time <= hit_col_endT)
+		{
+			on_hit_event();
+		}
+	}
+	void update_time(float t)
+	{
+		ani_nomal_time += t;
+	}
 };
-class follow_st
+struct random_idle_st
 {
-
+	time_val_t idle;
+	vec2_t last_dir2d;
+};
+struct random_move_st
+{
+	time_val_t move;
+	vec2_t dir2d;
+};
+struct follow_st
+{
+	vec2_t target_pos;
 };
 
 class Champion : YCObject
@@ -295,11 +400,10 @@ class Champion : YCObject
 	int user_id;
 public:
 	PROP_G(Strand*, Sync, { return svr->get_sync(id); });
+	vec2_t pos;
 protected:
 	champ_t* champ;
 	stat_t stat;
-	vec2_t pos;
-	vec2_t dir2d;
 
 	static std::vector<Champion*> champs;
 	std::vector<Champion*> hited;
@@ -311,7 +415,10 @@ public:
 		champs.push_back(this);
 		champ = champ_t::new_champ(champ_code);
 		stat = champ->defult_stats;
-		stat.hp.add([this] { send_hp_data(); });
+		stat.hp.on_change([this] { send_hp_data(); });
+		champ_state = random_move_st{ time_val_t(yc::rand(1.f, 2.f)), yc::random_dir2d<vec2_t>() };
+
+		pos = vec2_t(yc::rand(0.f, 8.f), yc::rand(0.f, 8.f));
 	}
 	~Champion()
 	{
@@ -323,15 +430,28 @@ private:
 	std::variant<
 		attack_st,
 		random_move_st,
+		random_idle_st,
 		follow_st> 
 		champ_state;
-	bool champs_in_attack_range()
+	bool is_attackable()
 	{
-		for (auto i : champs)
+		for (auto i : champs) {
+			if (i == this) continue;
 			if (i->pos.dist(pos) <= champ->atk_data.attack_range)
 				return true;
+		}
 		return false;
 	}
+	bool is_followable()
+	{
+		for (auto i : champs) {
+			if (i == this) continue;
+			if (pos.dist(i->pos) <= stat.follow_range)
+				return true;
+		}
+		return false;
+	}
+	
 public:
 	void hit(float dmg)
 	{
@@ -355,27 +475,116 @@ public:
 			send(&t);
 		});
 	}
+	void send_ani(int ani_code, float nomalT)
+	{
+		champ_ani_t t
+		{
+			user_id,
+			ani_code,
+			nomalT
+		};
+
+		send(&t);
+	}
+	void send_pos(float speed, vec2_t pos, vec2_t vel, vec2_t dir)
+	{
+		player_t p
+		{ 
+			user_id,
+			speed,
+			pos,
+			vel,
+			dir
+		};
+
+		send(&p);
+	}
+	
+	template <typename T>
+	static void send(int user_id, T* p)
+	{
+		svr->Send(champs[user_id]->id, p);
+	}
 	template <typename T>
 	void send(T* p)
 	{
 		svr->Send(id, p);
 	}
 	
-
-
 	virtual void fixed_update(float fixedDeltatime)
 	{
-		Sync->Add([this, fixedDeltatime] {
+		Sync->Add([this, fixed_dt = fixedDeltatime] {
+
+			auto near_champ_pos = [t = this]() {
+				using namespace ::ranges;
+				return 	vec2_t::get_close(
+					t->pos,
+					champs	| views::filter([t](const auto& i) { return t != i; })
+							| views::transform([](const auto& c) { return c->pos; })
+							| to_vector);
+			};
+			auto send_vel = [this](auto d, auto d2) { send_pos(stat.speed, pos, d, d2); };
+			
 			std::visit(
 				overloaded {
-					[&](const attack_st& ){
-						
-					},
-					[&](const random_move_st& ){
-						
-					},
-					[&](const follow_st& ){
+					[&](attack_st& s) {
+						send_ani(0, s.ani_nomal_time);
+						s.update_time(fixed_dt);
+						s.on_hitable_time([&] {
+							using namespace ::ranges;
+							auto in_range = [&, 
+								&atk_d = champ->atk_data,
+								ori = pos + (s.vel * champ->atk_data.attack_start_dist)](const auto& i) {
+								if (std::find(hited.begin(), hited.end(), i) != hited.end()) return false;
+								if (i == this) return false;
 
+								return ori.dist(i->pos) <= atk_d.attack_range;
+							};
+
+							for (Champion*& i : champs	| views::filter(in_range))
+							{
+								i->hit(stat.op);
+								hited.push_back(i);
+							}
+						},champ->atk_data.attack_col_start_time, champ->atk_data.attack_col_end_time);
+						s.on_attack_end([&] { hited.clear(); champ_state = random_idle_st{ time_val_t(stat.as), s.dir2d }; });
+					},
+					[&](random_move_st& rm) {
+						if (is_followable())
+						{
+							champ_state = follow_st{ near_champ_pos() };
+						}
+						else
+						{
+							pos += rm.dir2d * stat.speed * fixed_dt;
+							send_pos(stat.speed, pos, rm.dir2d, rm.dir2d);
+							rm.move.timer_end([&] {
+								champ_state = random_idle_st { time_val_t(yc::rand(1.f, 2.f)) };
+							}, fixed_dt);
+						}
+					},
+					[&](random_idle_st& ri)
+					{
+						ri.idle.timer_start([&] {
+							send_pos(0, pos, vec2_t{}, ri.last_dir2d);
+						});
+						ri.idle.timer_end([&] {
+							auto r = yc::random_dir2d<vec2_t>();
+							champ_state = random_move_st{ time_val_t(yc::rand(1.f, 2.f)), r };
+						}, fixed_dt);
+					},
+					[&](const follow_st& ft){
+						auto vel_of_near_champ = pos.vel_for(near_champ_pos());
+						if (is_attackable())
+						{
+							send_vel(vec2_t{}, vel_of_near_champ);
+							champ_state = attack_st { 0, vel_of_near_champ, vel_of_near_champ };
+						}
+						else
+						{
+							pos += vel_of_near_champ * stat.speed * fixed_dt;
+							send_vel(vel_of_near_champ, vel_of_near_champ);
+						}
 					}
 				},
 			champ_state);
@@ -586,6 +795,9 @@ int main() {
 #pragma endregion
 
 #pragma region Server Init
+
+	std::vector<Champion*> test_champs;
+
 	YCServer server(51234,
 		[&](int id) {
 			clients[id] = sesstion_t{ id, false };
@@ -662,6 +874,19 @@ int main() {
 				login_clients[user_id] = login_sesstion_t{ id, user_id, std::get<1>(nname).name, new Champion(id, user_id, eChampion::Warrior) };
 				get_user_id[id] = user_id;
 				send_nickname_to(id);
+
+
+				static bool once_f = true;
+
+				if (once_f)
+				{
+					test_champs.push_back(new Champion(0, 1001, eChampion::Warrior));
+					//test_champs.push_back(new Champion(0, 1002, eChampion::Warrior));
+					//test_champs.push_back(new Champion(0, 1003, eChampion::Warrior));
+					//test_champs.push_back(new Champion(0, 1004, eChampion::Warrior));
+
+					once_f = false;
+				}
 			}
 			server.Send(id, &r);
 		});
