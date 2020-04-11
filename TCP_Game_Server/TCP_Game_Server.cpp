@@ -7,6 +7,8 @@
 #include <functional>
 #include <cmath>
 #include <variant>
+#include <optional>
+#include <experimental/coroutine>
 
 
 #include "YCServer.h"
@@ -126,7 +128,7 @@ struct vec2_t
 	{
 		return (o - *this).normalize();
 	}
-	static vec2_t get_close(vec2_t start_p, std::vector<vec2_t> ps)
+	static vec2_t get_close(const vec2_t& start_p, const std::vector<vec2_t>& ps)
 	{
 		//using namespace ::ranges;
 		assert(!ps.empty());
@@ -139,7 +141,6 @@ struct vec2_t
 		{
 			return vec2_t(r.second.first, r.second.second);
 		}
-		
 	}
 };
 
@@ -196,6 +197,90 @@ struct stat_t
 	float ani_time_nomal;
 	float ani_time;
 };
+
+
+struct req_champ_list_t
+{
+	int user_id;
+};
+
+
+enum class eItem_t : int
+{
+	Mounting,
+	Material
+};
+
+struct item_data_t
+{
+	std::wstring name;
+	eItem_t type;
+};
+
+struct item_t
+{
+	int item_code;
+	int count;
+};
+
+struct item_list_t
+{
+	item_t items[10];
+};
+
+class ITEMDB
+{
+	static std::vector<item_data_t> ITEMS;
+
+	item_data_t get(int item_code)
+	{
+#pragma region ItemSetting
+		if (ITEMS.empty())
+		{
+			ITEMS.push_back(item_data_t{ L"COIN", eItem_t::Material });
+		}
+#pragma endregion
+
+		assert(item_code >= ITEMS.size());
+		return ITEMS[item_code];
+	}
+};
+
+struct champ_type_t
+{
+	int code;
+	int star;
+	int lv;
+	int item1;
+	int item2;
+	int item3;
+	int item4;
+	int item5;
+	int item6;
+	int value1;
+};
+struct champ_list_t
+{
+	int user_id;
+	int count;
+	champ_type_t champs[10];
+};
+
+enum class eGacha_type
+{
+	_10 = 0,
+	_1 = 1
+};
+
+struct champ_gacha_t
+{
+	int gacha_type;
+};
+struct champ_gacha_r_t
+{
+	int new_champ_code;
+};
+
 #pragma pack(pop)
 
 #pragma region Define - Stats - Lable
@@ -604,6 +689,25 @@ struct login_sesstion_t
 	int user_id;
 	std::wstring name;
 	Champion* a;
+	champ_list_t champs;
+};
+
+//TODO :
+/*
+	 - 게임 상태.
+	 - 플레이어 목록을 저장.
+
+	 게임 시작시 모든 플레이어들이 챔피언을 선택하고 게임이 시작됨.
+	 일단 게임이 시작되면, 랜덤위치에 모든 챔피언들이 생성된다,
+	 그리고 각자의 스텟에 따라 싸움을 진행하고, 시간이 지날 수록 탐색 범위가 넓어져서, 모든 챔피언들이 다 싸우게 된다.
+*/
+struct battle_t
+{
+	// 플레이어중 하나를 골라 싱크를 맞춘다.
+	
+	// std::variant<GameState...> state;
+	login_sesstion_t* players;
+	unordered_map<login_sesstion_t*, Champion*> champs;
 };
 
 #define DB_PATH "C:/YCDB"
@@ -773,6 +877,11 @@ int main() {
 	ioev::Map<player_t>().To<10>();
 	ioev::Map<champ_hp_t>().To<11>();
 	ioev::Map<champ_ani_t>().To<12>();
+	ioev::Map<champ_type_t>().To<13>();
+	ioev::Map<champ_list_t>().To<14>();
+	ioev::Map<req_champ_list_t>().To<15>();
+	ioev::Map<champ_gacha_t>().To<16>();
+	ioev::Map<champ_gacha_r_t>().To<17>();
 #pragma endregion
 
 #pragma region Curried Functions
@@ -780,6 +889,8 @@ int main() {
 	auto sign_up = make_curried(YC_DBv1::register_id)(true);
 	auto get_db_nickname = YC_DBv1::get<db_nickname>;
 	auto set_nickname = make_curried(YC_DBv1::set<db_nickname>);
+	auto set_champlist = make_curried(YC_DBv1::set<champ_list_t>);
+	auto get_db_champlist = YC_DBv1::get<champ_list_t>;
 	auto get_db_nickname_validate = YC_DBv1::once_get<db_nickname_validate>;
 	auto set_db_nickname_validate = make_curried(YC_DBv1::once_set<db_nickname_validate>);
 #pragma endregion
@@ -858,6 +969,9 @@ int main() {
 			set_nickname(id, data);
 		});
 	};
+	auto set_db_champlist = [&](const int user_id, champ_list_t list) {
+		set_champlist(user_id, list);
+	};
 	auto r_login = [&](auto&& f) { return [&](auto* p, int id) {
 		server.get_server_sync()->Add([&, login_data = *p, id]() {
 			auto user_id = f(login_data.id_str, login_data.pass_str);
@@ -868,19 +982,24 @@ int main() {
 				if (!std::get<0>(get_db_nickname(user_id)))
 				{
 					set_db_nickname(L"None", user_id);
+					set_db_champlist(user_id, champ_list_t{ user_id, 0 });
 				}
-				auto nname = get_db_nickname(user_id);
 				clients[id].IsLogin = true;
-				login_clients[user_id] = login_sesstion_t{ id, user_id, std::get<1>(nname).name, new Champion(id, user_id, eChampion::Warrior) };
+				login_clients[user_id] = login_sesstion_t {
+					id, 
+					user_id, 
+					std::get<1>(get_db_nickname(user_id)).name,
+					nullptr/*new Champion(id, user_id, eChampion::Warrior)*/,
+					std::get<1>(get_db_champlist(user_id))
+				};
 				get_user_id[id] = user_id;
 				send_nickname_to(id);
-
 
 				static bool once_f = true;
 
 				if (once_f)
 				{
-					test_champs.push_back(new Champion(0, 1001, eChampion::Warrior));
+					//test_champs.push_back(new Champion(0, 1001, eChampion::Warrior));
 					//test_champs.push_back(new Champion(0, 1002, eChampion::Warrior));
 					//test_champs.push_back(new Champion(0, 1003, eChampion::Warrior));
 					//test_champs.push_back(new Champion(0, 1004, eChampion::Warrior));
@@ -944,6 +1063,12 @@ int main() {
 	ioev::Signal<player_t>([&](player_t* d, int id) {
 		login_clients[get_user_id[id]].a->set_speed(d->speed);
 	});
+	
+
+	
+
+
+
 
 	server.Srv_Start();
 	return 0;
