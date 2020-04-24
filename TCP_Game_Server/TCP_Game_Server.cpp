@@ -59,7 +59,7 @@ struct set_name_t
 };
 struct set_name_r_t
 {
-	bool IsSuccess;
+	int IsSuccess;
 };
 struct db_nickname
 {
@@ -258,6 +258,11 @@ struct champ_type_t
 	int item5;
 	int item6;
 	int value1;
+
+	static champ_type_t get_champ_type_defult(int code, int star)
+	{
+		return champ_type_t { code, star, 1, -1, -1, -1, -1, -1, -1, -1 };
+	}
 };
 struct champ_list_t
 {
@@ -279,6 +284,16 @@ struct champ_gacha_t
 struct champ_gacha_r_t
 {
 	int new_champ_code;
+};
+
+class champ_pick_data_t
+{
+	int list[2];
+};
+
+class cmd_game_start_t
+{
+	int flag;
 };
 
 #pragma pack(pop)
@@ -479,37 +494,42 @@ struct follow_st
 	vec2_t target_pos;
 };
 
-class Champion : YCObject
+class Champion : public YCObject
 {
 	int id;
 	int user_id;
 public:
 	PROP_G(Strand*, Sync, { return svr->get_sync(id); });
+	PROP_G(float, AttackPower, { return stat.op * yc::rand(1.f, 5.f); });
 	vec2_t pos;
 protected:
 	champ_t* champ;
 	stat_t stat;
 
-	static std::vector<Champion*> champs;
+	std::vector<Champion*> room;
 	std::vector<Champion*> hited;
 public:
 	Champion(int i, int ui, eChampion champ_code) :
 		id(i), user_id(ui)
 	{
 		objs[user_id] = this;
-		champs.push_back(this);
 		champ = champ_t::new_champ(champ_code);
 		stat = champ->defult_stats;
-		stat.hp.on_change([this] { send_hp_data(); });
+		stat.hp.on_change([this] { 
+			send_hp_data();
+			if (!IsAlived())
+			{
+				send_death();
+				svr->get_server_sync()->Add([this] { SetActive(false); });
+			}
+		});
 		champ_state = random_move_st{ time_val_t(yc::rand(1.f, 2.f)), yc::random_dir2d<vec2_t>() };
-
 		pos = vec2_t(yc::rand(0.f, 8.f), yc::rand(0.f, 8.f));
 	}
 	~Champion()
 	{
-		objs.erase(user_id);
+		svr->get_server_sync()->Add([uid = user_id] { objs.erase(uid); });
 		delete champ;
-		champs.erase(std::remove(champs.begin(), champs.end(), this), champs.end());
 	}
 private:
 	std::variant<
@@ -520,7 +540,7 @@ private:
 		champ_state;
 	bool is_attackable()
 	{
-		for (auto i : champs) {
+		for (auto i : room) {
 			if (i == this) continue;
 			if (i->pos.dist(pos) <= champ->atk_data.attack_range)
 				return true;
@@ -529,7 +549,7 @@ private:
 	}
 	bool is_followable()
 	{
-		for (auto i : champs) {
+		for (auto i : room) {
 			if (i == this) continue;
 			if (pos.dist(i->pos) <= stat.follow_range)
 				return true;
@@ -538,6 +558,14 @@ private:
 	}
 	
 public:
+	bool IsAlived() const
+	{
+		return stat.hp.val > 0;
+	}
+	void SetRoom(std::vector<Champion*> r)
+	{
+		room = r;
+	}
 	void hit(float dmg)
 	{
 		Sync->Add([this, dmg] { stat.hp = stat.hp - dmg; });
@@ -557,7 +585,8 @@ public:
 			t.user_id = ui;
 			t.hp = hp;
 			t.max_hp = max_hp;
-			send(&t);
+
+			for(auto& i : room) i->send(&t);
 		});
 	}
 	void send_ani(int ani_code, float nomalT)
@@ -568,8 +597,8 @@ public:
 			ani_code,
 			nomalT
 		};
-
-		send(&t);
+		
+		for (auto& i : room) i->send(&t);
 	}
 	void send_pos(float speed, vec2_t pos, vec2_t vel, vec2_t dir)
 	{
@@ -582,13 +611,28 @@ public:
 			dir
 		};
 
-		send(&p);
+		for (auto& i : room) i->send(&p);
 	}
-	
+	void send_win()
+	{
+		Sync->Add([uid = user_id] { fmt::print("{} win!\n", uid); });
+	}
+	void send_death()
+	{
+		Sync->Add([uid = user_id] { fmt::print("{} death!\n", uid); });
+	}
+	void DestroySelf()
+	{
+		svr->get_server_sync()->Add([this]() { 
+			SetActive(false);
+			Sync->AddLate([gabage = this]() { delete gabage; });
+		});
+	}
+
 	template <typename T>
 	static void send(int user_id, T* p)
 	{
-		svr->Send(champs[user_id]->id, p);
+		svr->Send(room[user_id]->id, p);
 	}
 	template <typename T>
 	void send(T* p)
@@ -604,12 +648,13 @@ public:
 				using namespace ::ranges;
 				return 	vec2_t::get_close(
 					t->pos,
-					champs	| views::filter([t](const auto& i) { return t != i; })
+					t->room | views::filter([t](const auto& i) { return i->active_self(); })
+							| views::filter([t](const auto& i) { return t != i; })
 							| views::transform([](const auto& c) { return c->pos; })
 							| to_vector);
 			};
 			auto send_vel = [this](auto d, auto d2) { send_pos(stat.speed, pos, d, d2); };
-			
+			stat.follow_range += fixed_dt * 0.7f;
 			std::visit(
 				overloaded {
 					[&](attack_st& s) {
@@ -621,14 +666,15 @@ public:
 								&atk_d = champ->atk_data,
 								ori = pos + (s.vel * champ->atk_data.attack_start_dist)](const auto& i) {
 								if (std::find(hited.begin(), hited.end(), i) != hited.end()) return false;
-								if (i == this) return false;
+								else if (i == this)			return false;
+								else if (!i->active_self())	return false;
 
 								return ori.dist(i->pos) <= atk_d.attack_range;
 							};
 
-							for (Champion*& i : champs	| views::filter(in_range))
+							for (Champion*& i : room | views::filter(in_range))
 							{
-								i->hit(stat.op);
+								i->hit(AttackPower);
 								hited.push_back(i);
 							}
 						},champ->atk_data.attack_col_start_time, champ->atk_data.attack_col_end_time);
@@ -676,7 +722,6 @@ public:
 		});
 	}
 };
-std::vector<Champion*> Champion::champs;
 
 struct sesstion_t
 {
@@ -701,13 +746,93 @@ struct login_sesstion_t
 	 일단 게임이 시작되면, 랜덤위치에 모든 챔피언들이 생성된다,
 	 그리고 각자의 스텟에 따라 싸움을 진행하고, 시간이 지날 수록 탐색 범위가 넓어져서, 모든 챔피언들이 다 싸우게 된다.
 */
+
+
+struct battler_data_t
+{
+	int id;
+	int user_id;
+	eChampion champ_code;
+};
+
+struct matching_st
+{
+	int max_battler_count;
+	std::vector<battler_data_t> battlers;
+};
+
+struct battle_st
+{
+	std::vector<Champion*> champs;
+};
+
+struct game_end_st
+{
+	Champion* alive_champ;
+};
+
+
+struct delete_battle_st
+{
+
+};
+
 struct battle_t
 {
-	// 플레이어중 하나를 골라 싱크를 맞춘다.
-	
-	// std::variant<GameState...> state;
-	login_sesstion_t* players;
-	unordered_map<login_sesstion_t*, Champion*> champs;
+	std::variant<
+		matching_st,
+		battle_st,
+		game_end_st,
+		delete_battle_st> 
+		state;
+
+	template <typename F1, typename F2>
+	void run(F1 get_user_queue, F2 win_event)
+	{
+		std::visit(
+			overloaded {
+			[&](matching_st& m) {
+				using namespace ::ranges;
+				::ranges::for_each(get_user_queue(), [&](auto& i) { 
+					m.battlers.push_back(i); 
+				});
+				if (m.battlers.size() == m.max_battler_count) {
+					auto room = m.battlers | views::transform([&](const auto& i) { return new Champion(i.id, i.user_id, i.champ_code); })
+										   | to_vector;
+					::ranges::for_each(room, [&](auto& i) { i->SetRoom(room); });
+					state = battle_st{ room };
+				}
+			},
+			[&](battle_st& st) {
+				using namespace ::ranges;
+				auto is_alived = [](const auto& i) { return i->IsAlived(); };
+				auto is_not_alived = [](const auto& i) { return !i->IsAlived(); };
+
+				auto alive_champs = st.champs | views::filter(is_alived)
+											  | to_vector;
+				if (alive_champs.size() <= 1)
+				{
+					for (Champion*& i : st.champs | views::filter(is_not_alived))
+					{
+						i->DestroySelf();
+					}
+					if (alive_champs.size())
+					{
+						alive_champs[0]->SetActive(false);
+					}
+					state = game_end_st { alive_champs.size() ? alive_champs[0] : nullptr };
+				}
+			},
+			[&](game_end_st& end) {
+				if (end.alive_champ) {
+					win_event(end.alive_champ);
+					end.alive_champ->DestroySelf();
+				}
+				state = delete_battle_st{ };
+			},			
+			[&](auto&) { assert("이 상태가 실해되면 안댐!"); }
+		},state);
+	}
 };
 
 #define DB_PATH "C:/YCDB"
@@ -882,6 +1007,8 @@ int main() {
 	ioev::Map<req_champ_list_t>().To<15>();
 	ioev::Map<champ_gacha_t>().To<16>();
 	ioev::Map<champ_gacha_r_t>().To<17>();
+	ioev::Map<champ_pick_data_t>().To<18>();
+	ioev::Map<cmd_game_start_t>().To<19>();
 #pragma endregion
 
 #pragma region Curried Functions
@@ -908,6 +1035,8 @@ int main() {
 #pragma region Server Init
 
 	std::vector<Champion*> test_champs;
+	std::vector<battle_t> battles;
+	std::vector<battler_data_t> user_q;
 
 	YCServer server(51234,
 		[&](int id) {
@@ -940,6 +1069,36 @@ int main() {
 						i.second->fixed_update(fixed_deltatimeT);
 					}
 				}
+
+				bool already_matching = false;
+				std::vector<battle_t*> erase_battle_buffer;
+				for (auto& i : battles)
+				{
+					i.run(
+						[&, v = user_q] { 
+							user_q.clear(); 
+							return v; 
+						},
+						[&](Champion* winner) {
+							winner->send_win();
+						});
+					std::visit(overloaded{
+						[&](const matching_st&)		 { already_matching = true; },
+						[&](const delete_battle_st&) { erase_battle_buffer.push_back(&i); },
+						[](auto&) {}
+					}, i.state);
+				}
+				for (auto& i : erase_battle_buffer)
+				{
+					battles.erase(std::remove_if(battles.begin(), battles.end(), [t = i](auto& i) {
+						return &i == t;
+					}), battles.end());
+				}
+				if (!already_matching)
+				{
+					battles.push_back(battle_t{ matching_st{ 2, {} } });
+				}
+
 				fixed_deltatimeT -= fixed_deltatime;
 			}
 
@@ -955,10 +1114,11 @@ int main() {
 
 #pragma region Bind Functions
 	auto send_nickname_to = [&](int id) {
-		server.get_server_sync()->Add([&, id] {
+		server.get_server_sync()->AddLate([&, id] {
 			auto& clnt = login_clients[get_user_id[id]];
 			auto get_n = get_name_r_t{ clnt.user_id };
-			yc_str::copy(clnt.name, get_n.name);
+			yc_str::copy(clnt.name.c_str(), get_n.name);
+			fmt::print(L"name : {}\n", get_n.name);
 			server.Send(id, &get_n);
 		});
 	};
@@ -982,7 +1142,7 @@ int main() {
 				if (!std::get<0>(get_db_nickname(user_id)))
 				{
 					set_db_nickname(L"None", user_id);
-					set_db_champlist(user_id, champ_list_t{ user_id, 0 });
+					set_db_champlist(user_id, champ_list_t{ user_id, 1, { champ_type_t::get_champ_type_defult(0,1), } });
 				}
 				clients[id].IsLogin = true;
 				login_clients[user_id] = login_sesstion_t {
@@ -1010,6 +1170,18 @@ int main() {
 			server.Send(id, &r);
 		});
 	}; };
+	auto gacha_start = [&](int user_id) {
+		auto c = &login_clients[user_id];
+
+		server.get_sync(c->id)->Add([set_db_champlist, c, user_id, srv = &server]() {
+			auto new_champ = champ_type_t::get_champ_type_defult(yc::rand(0, (int)eChampion::End - 1), 1);
+			c->champs.champs[c->champs.count++] = new_champ;
+			set_db_champlist(user_id, c->champs);
+			champ_gacha_r_t r;
+			r.new_champ_code = new_champ.code;
+			srv->Send(c->id, &r);
+		});
+	};
 #pragma endregion
 
 	ioev::Signal<test_t>([&](test_t* d, int id) {
@@ -1063,12 +1235,19 @@ int main() {
 	ioev::Signal<player_t>([&](player_t* d, int id) {
 		login_clients[get_user_id[id]].a->set_speed(d->speed);
 	});
-	
-
-	
-
-
-
+	ioev::Signal<req_champ_list_t>([&](req_champ_list_t* d, int id){
+		server.Send(id, &login_clients[d->user_id].champs);
+	});
+	ioev::Signal<champ_gacha_t>([&](champ_gacha_t* d, int id) {
+		for (int i = 0; i < (d->gacha_type == (int)eGacha_type::_1 ? 1 : 1); i++)
+			gacha_start(get_user_id[id]);
+	});
+	ioev::Signal<cmd_game_start_t>([&](cmd_game_start_t* d, int id) {
+		server.get_server_sync()->Add([&, d, id] {
+			auto data = battler_data_t{ id, get_user_id[id], eChampion::Warrior };
+			user_q.push_back(data);
+		});
+	});
 
 	server.Srv_Start();
 	return 0;
